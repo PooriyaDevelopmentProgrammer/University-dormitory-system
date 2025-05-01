@@ -15,14 +15,29 @@ jobs:
 
     - name: Deploy to server via SSH
       uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.SERVER_IP }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: |
-          cd /home/ubntkhub/but_app
-          git pull origin shalghampaz
-          source venv/bin/activate
-          python manage.py migrate
-          python manage.py collectstatic --noinput
-          sudo systemctl restart apache2
+with:
+  host: ${{ secrets.SERVER_IP }}
+  username: ${{ secrets.SERVER_USER }}
+  key: ${{ secrets.SSH_PRIVATE_KEY }}
+  port: 522
+  script: |
+    cd /home/ubntkhub/
+
+    echo "✅ Backup old project..."
+    if [ -d "but_app" ]; then
+      tar -czf but_app_backup_$(date +%F_%T).tar.gz but_app
+      rm -rf but_app
+    fi
+
+    echo "⬇️ Clone new version from GitHub..."
+    git clone -b shalghampaz git@github.com:<YOUR_USERNAME>/<YOUR_REPO>.git but_app
+
+    echo "📦 Activate virtualenv and migrate..."
+    cd but_app
+    source venv/bin/activate
+    python manage.py migrate
+    python manage.py collectstatic --noinput
+
+    echo "🔄 Restart Apache..."
+    sudo systemctl restart apache2
+
