@@ -23,20 +23,45 @@ jobs:
         script: |
           cd /home/ubntkhub/
 
-          echo "✅ Backup old project..."
+          LOG_FILE="but_app/deploy.log"
+          echo "📦 Starting deployment at $(date)" >> $LOG_FILE
+
           if [ -d "but_app" ]; then
-            tar -czf but_app_backup_$(date +%F_%T).tar.gz but_app
-            rm -rf but_app
+            echo "✅ Backing up current project..." >> $LOG_FILE
+            tar -czf but_app_backup_$(date +%F_%T)_$(cd but_app && git rev-parse --short HEAD).tar.gz but_app
+            cd but_app
+            echo "📥 Pulling latest code..." >> $LOG_FILE
+            git pull origin shalghampaz >> $LOG_FILE 2>&1
+          else
+            echo "❗ Directory but_app not found, cloning fresh project..." >> $LOG_FILE
+            git clone -b shalghampaz ${{ secrets.REPO_SSH }} but_app >> $LOG_FILE 2>&1
+
+            cd but_app
           fi
 
-          echo "⬇️ Clone new version from GitHub..."
-          git clone -b shalghampaz git@github.com:<YOUR_USERNAME>/<YOUR_REPO>.git but_app
+          echo "🔧 Setting up virtual environment..." >> $LOG_FILE
+          if [ ! -d "venv" ]; then
+            python3 -m venv venv
+            source venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt >> $LOG_FILE 2>&1
+          else
+            source venv/bin/activate
+            pip install -r requirements.txt >> $LOG_FILE 2>&1
+          fi
 
-          echo "📦 Activate virtualenv and migrate..."
-          cd but_app
-          source venv/bin/activate
-          python manage.py migrate
-          python manage.py collectstatic --noinput
+          echo "🧪 Running tests..." >> $LOG_FILE
+          if ! python manage.py test >> $LOG_FILE 2>&1; then
+            echo "❌ Tests failed. Aborting deployment." >> $LOG_FILE
+            exit 1
+          fi
 
-          echo "🔄 Restart Apache..."
-          sudo systemctl restart apache2
+          echo "📂 Running migrate and collectstatic..." >> $LOG_FILE
+          python manage.py migrate >> $LOG_FILE 2>&1
+          python manage.py makemigrations >> $LOG_FILE 2>&1
+          python manage.py collectstatic --noinput >> $LOG_FILE 2>&1
+
+          echo "🚀 Restarting Apache..." >> $LOG_FILE
+          sudo systemctl restart apache2 >> $LOG_FILE 2>&1
+
+          echo "✅ Deployment finished at $(date)" >> $LOG_FILE
