@@ -43,7 +43,8 @@ INSTALLED_APPS = [
     'bookings.apps.BookingsConfig',
     'payments.apps.PaymentsConfig',
     'complaints.apps.ComplaintsConfig',
-    'inventory.apps.InventoryConfig'
+    'inventory.apps.InventoryConfig',
+    'rest_framework',
 ]
 
 REST_FRAMEWORK = {
