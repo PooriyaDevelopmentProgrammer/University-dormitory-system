@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from . import managers
+from uuid import uuid4
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -17,8 +18,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     gender = models.CharField(choices=EnumGender.choices, default=EnumGender.male)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-    is_admin= models.BooleanField(default=False)
+    is_admin = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     USERNAME_FIELD = 'student_code'
     REQUIRED_FIELDS = ['national_code', 'phone_number', 'gender']
     objects = managers.UserManager()
