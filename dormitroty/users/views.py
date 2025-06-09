@@ -21,6 +21,10 @@ class UserRegisterView(APIView):
             400: {'description': 'Invalid data'}
         }
     )
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [permissions.AllowAny()]
+        return super().get_permissions()
     def post(self, request):
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
