@@ -12,7 +12,7 @@ class UserRegisterView(APIView):
     """
     documentation for UserRegisterView with spectacular
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
 
     def get_permissions(self):
