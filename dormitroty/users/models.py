@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from django.core.validators import MinLengthValidator
 from . import managers
 from uuid import uuid4
 
@@ -13,8 +14,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(max_length=30, blank=True)
     last_name = models.CharField(max_length=30, blank=True)
     student_code = models.CharField(max_length=20, unique=True)
-    national_code = models.CharField(max_length=10, unique=True)
-    phone_number = models.CharField(max_length=15, unique=True)
+    national_code = models.CharField(max_length=10, unique=True, validators=[MinLengthValidator(10)])
+    phone_number = models.CharField(max_length=15, unique=True, validators=[MinLengthValidator(10)])
     gender = models.CharField(choices=EnumGender.choices, default=EnumGender.male)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
