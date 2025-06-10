@@ -14,7 +14,7 @@ class UserModelTest(TestCase):
             student_code="123456",
             national_code="9876543210",
             phone_number="09123456789",
-            gender=User.EnumGender.male,
+            gender=User.EnumGender.MALE,
             is_active=True,
             is_staff=False,
             is_admin=False,
@@ -31,7 +31,7 @@ class UserModelTest(TestCase):
         self.assertEqual(self.user.student_code, "123456")
         self.assertEqual(self.user.national_code, "9876543210")
         self.assertEqual(self.user.phone_number, "09123456789")
-        self.assertEqual(self.user.gender, User.EnumGender.male)
+        self.assertEqual(self.user.gender, User.EnumGender.MALE)
         self.assertTrue(self.user.is_active)
         self.assertFalse(self.user.is_staff)
         self.assertFalse(self.user.is_admin)
