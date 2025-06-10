@@ -1,14 +1,26 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
-
 from .models import User
 
-class UserRegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
 
+class UserRegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['student_code', 'national_code', 'phone_number', 'gender', 'password']
+        exclude = ('is_active', 'is_staff', 'is_admin', 'is_superuser')
+        extra_kwargs = {
+            'password': {'write_only': True},
+        }
+
+    def validate(self, data):
+        if 'phone_number' in data:
+            if data['phone_number'].startswith('+98'):
+                data['phone_number'] = '0' + data['phone_number'][3:]
+            elif data['phone_number'].startswith('9'):
+                data['phone_number'] = '0' + data['phone_number']
+            else:
+                if not data['phone_number'].startswith('0'):
+                    raise serializers.ValidationError("Phone number must start with 0 or 9.")
+        return data
 
     def create(self, validated_data):
         password = validated_data.pop('password')
@@ -17,17 +29,10 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        if password:
+            instance.set_password(password)
+        return super().update(instance, validated_data)
 
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    def validate(self, attrs):
-        data = super().validate(attrs)
-        # Add custom fields to the response
-        data['student_code'] = self.user.student_code
-        data['password'] = self.user.password
-        return data
 
-class CustomTokenRefreshSerializer(TokenRefreshSerializer):
-    def validate(self, attrs):
-        data = super().validate(attrs)
-        # Add custom fields to the response if needed
-        return data
