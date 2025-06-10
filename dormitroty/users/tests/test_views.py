@@ -32,7 +32,7 @@ class UserRegisterViewTest(APITestCase):
         self.assertEqual(len(response.data), 1)
 
 
-class UserUpdateViewTest(APITestCase):
+class UserDetailsViewTest(APITestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = User.objects.create_user(
@@ -59,6 +59,21 @@ class UserUpdateViewTest(APITestCase):
         self.assertEqual(self.user.last_name, "UpdatedLastName")
         self.assertEqual(self.user.phone_number, "09129876543")
         self.assertTrue(self.user.check_password("newpassword123"))
+    def test_delete_user(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.delete(f'/api/users/details/{self.user.id}/')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(User.objects.filter(id=self.user.id).exists())
+
+    def test_get_user(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(f'/api/users/details/{self.user.id}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['email'], self.user.email)
+        self.assertEqual(response.data['student_code'], self.user.student_code)
+        self.assertEqual(response.data['national_code'], self.user.national_code)
+        self.assertEqual(response.data['phone_number'], self.user.phone_number)
+
 
 
 class ValidatePhoneNumberTest(APITestCase):
