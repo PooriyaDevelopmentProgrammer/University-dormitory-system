@@ -6,7 +6,6 @@ class UserManager(BaseUserManager):
         student_code = kwargs.get('student_code', None)
         national_code = kwargs.get('national_code', None)
         phone_number = kwargs.get('phone_number', None)
-        gender = kwargs.get('gender', False)
         if not student_code:
             raise ValueError("An username is required.")
         if not national_code:
@@ -17,7 +16,6 @@ class UserManager(BaseUserManager):
             student_code=student_code,
             national_code=national_code,
             phone_number=phone_number,
-            gender=gender
         )
 
         user.set_password(password)
