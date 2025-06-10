@@ -7,8 +7,8 @@ from uuid import uuid4
 
 class User(AbstractBaseUser, PermissionsMixin):
     class EnumGender(models.TextChoices):
-        male = 'male', 'male'
-        female = 'female', 'female'
+        MALE = 'male', 'Male'
+        FEMALE = 'female', 'Female'
 
     email = models.EmailField(unique=True, blank=True, null=True)
     first_name = models.CharField(max_length=30, blank=True)
@@ -16,7 +16,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     student_code = models.CharField(max_length=20, unique=True)
     national_code = models.CharField(max_length=10, unique=True, validators=[MinLengthValidator(10)])
     phone_number = models.CharField(max_length=15, unique=True, validators=[MinLengthValidator(10)])
-    gender = models.CharField(choices=EnumGender.choices, default=EnumGender.male)
+    gender = models.CharField(max_length=6, choices=EnumGender.choices, default=EnumGender.MALE)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
