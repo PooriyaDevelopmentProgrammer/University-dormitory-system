@@ -1,0 +1,178 @@
+# Python
+from rest_framework.test import APITestCase, APIClient
+from rest_framework import status
+from dorms.models import Dorm, Room, Bed
+from users.models import User
+
+
+class DormAPIViewTest(APITestCase):
+    def setUp(self):
+        # Create a test admin user
+        self.admin_user = User.objects.create_superuser(
+            student_code='11111111111', password='admin123', email='admin@example.com',
+            national_code='1234567890', phone_number='+989398413991'
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.admin_user)
+
+        # Create test dorms
+        self.dorm1 = Dorm.objects.create(name="Dorm A", location="Location A")
+        self.dorm2 = Dorm.objects.create(name="Dorm B", location="Location B")
+
+    def test_get_dorms(self):
+        response = self.client.get('/api/dorms/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]['name'], "Dorm A")
+        self.assertEqual(response.data[1]['name'], "Dorm B")
+
+    def test_create_dorm(self):
+        data = {
+            "name": "Dorm C",
+            "location": "Location C"
+        }
+        response = self.client.post('/api/dorms/', data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['name'], "Dorm C")
+        self.assertEqual(response.data['location'], "Location C")
+
+
+class RoomModelTest(APITestCase):
+    def setUp(self):
+        self.dorm = Dorm.objects.create(
+            name="Dorm B",
+            location="Location B",
+            gender_restriction="female",
+            description="A dorm for female students."
+        )
+
+    def test_create_room(self):
+        room = Room.objects.create(
+            dorm=self.dorm,
+            room_number="101",
+            capacity=4,
+            floor=1
+        )
+        self.assertEqual(room.dorm, self.dorm)
+        self.assertEqual(room.room_number, "101")
+        self.assertEqual(room.capacity, 4)
+        self.assertEqual(room.floor, 1)
+        self.assertEqual(str(room), "Room 101 - Dorm B")
+
+    def test_available_beds(self):
+        room = Room.objects.create(
+            dorm=self.dorm,
+            room_number="102",
+            capacity=3,
+            floor=2
+        )
+        Bed.objects.create(room=room, bed_number="1", is_occupied=False)
+        Bed.objects.create(room=room, bed_number="2", is_occupied=True)
+        Bed.objects.create(room=room, bed_number="3", is_occupied=False)
+        self.assertEqual(room.available_beds(), 2)
+
+
+class BedModelTest(APITestCase):
+    def setUp(self):
+        self.dorm = Dorm.objects.create(
+            name="Dorm C",
+            location="Location C",
+            gender_restriction="male",
+            description="Another dorm for male students."
+        )
+        self.room = Room.objects.create(
+            dorm=self.dorm,
+            room_number="201",
+            capacity=2,
+            floor=1
+        )
+
+    def test_create_bed(self):
+        bed = Bed.objects.create(
+            room=self.room,
+            bed_number="1",
+            is_occupied=False
+        )
+        self.assertEqual(bed.room, self.room)
+        self.assertEqual(bed.bed_number, "1")
+        self.assertFalse(bed.is_occupied)
+        self.assertEqual(str(bed), "Bed 1 in Room 201")
+
+    def test_bed_occupancy(self):
+        bed = Bed.objects.create(
+            room=self.room,
+            bed_number="2",
+            is_occupied=True
+        )
+        self.assertTrue(bed.is_occupied)
+
+    def test_get_beds_by_room(self):
+        bed1 = Bed.objects.create(room=self.room, bed_number="1", is_occupied=False)
+        bed2 = Bed.objects.create(room=self.room, bed_number="2", is_occupied=True)
+        beds = self.room.beds.all()
+        self.assertIn(bed1, beds)
+        self.assertIn(bed2, beds)
+        self.assertEqual(len(beds), 2)
+
+
+# Python
+class BedCapacityAPITest(APITestCase):
+    def setUp(self):
+        # Create a test admin user
+        self.admin_user = User.objects.create_superuser(
+            student_code='11111111111', password='admin123', email='admin@example.com',
+            national_code='1234567890', phone_number='+989398413991'
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.admin_user)
+
+        # Create a test dorm and room
+        self.dorm = Dorm.objects.create(
+            name="Dorm A",
+            location="Location A",
+            gender_restriction="male",
+            description="A dorm for male students."
+        )
+        self.room = Room.objects.create(
+            dorm=self.dorm,
+            room_number="101",
+            capacity=2,
+            floor=1
+        )
+
+    def test_create_beds_within_capacity(self):
+        # Create beds within the room's capacity
+        response1 = self.client.post('/api/dorms/beds/', {
+            "room": self.room.id,
+            "bed_number": "1",
+            "is_occupied": False
+        })
+        self.assertEqual(response1.status_code, status.HTTP_201_CREATED)
+
+        response2 = self.client.post('/api/dorms/beds/', {
+            "room": self.room.id,
+            "bed_number": "2",
+            "is_occupied": True
+        })
+        self.assertEqual(response2.status_code, status.HTTP_201_CREATED)
+
+    def test_create_bed_exceeding_capacity(self):
+        # Create beds exceeding the room's capacity
+        self.client.post('/api/dorms/beds/', {
+            "room": self.room.id,
+            "bed_number": "1",
+            "is_occupied": False
+        })
+        self.client.post('/api/dorms/beds/', {
+            "room": self.room.id,
+            "bed_number": "2",
+            "is_occupied": True
+        })
+        response = self.client.post('/api/dorms/beds/', {
+            "room": self.room.id,
+            "bed_number": "3",
+            "is_occupied": False
+        })
+        print(response.data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("The number of beds cannot exceed the room's capacity", str(response.data['non_field_errors'][0]))
