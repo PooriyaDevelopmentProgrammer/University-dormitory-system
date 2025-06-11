@@ -57,6 +57,44 @@ class DormAPIViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
+
+class DormDetailsAPITest(APITestCase):
+    def setUp(self):
+        self.admin_user = User.objects.create_superuser(
+            student_code='11111111111', password='admin123', email='admin@example.com',
+            national_code='1234567890', phone_number='+989398413991'
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.admin_user)
+        self.dorm = Dorm.objects.create(
+            name="Test Dorm",
+            location="Test Location",
+            gender_restriction="male",
+            description="Test Description"
+        )
+        self.update_url = f'/api/dorms/details/{self.dorm.id}/'
+        self.delete_url = f'/api/dorms/details/{self.dorm.id}/'
+
+    def test_update_dorm(self):
+        data = {
+            "name": "Updated Dorm",
+            "location": "Updated Location",
+            "gender_restriction": "female",
+            "description": "Updated Description"
+        }
+        response = self.client.put(self.update_url, data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['name'], "Updated Dorm")
+        self.assertEqual(response.data['location'], "Updated Location")
+        self.assertEqual(response.data['gender_restriction'], "female")
+        self.assertEqual(response.data['description'], "Updated Description")
+
+    def test_delete_dorm(self):
+        response = self.client.delete(self.delete_url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Dorm.objects.filter(id=self.dorm.id).exists())
+
+
 class RoomModelTest(APITestCase):
     def setUp(self):
         self.admin_user = User.objects.create_superuser(
