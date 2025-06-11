@@ -1,5 +1,8 @@
+from math import floor
+
 from rest_framework import serializers
 from dorms.models import Dorm, Room, Bed
+from django.db.models import Q
 
 
 class BedSerializer(serializers.ModelSerializer):
@@ -22,7 +25,21 @@ class RoomSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Room
-        fields = ['id', 'room_number', 'capacity', 'floor', 'dorm', 'beds']
+        fields = ['id', 'capacity', 'floor', 'dorm', 'beds']
+
+    def create(self, validated_data):
+        floor = validated_data.pop('floor')
+        room_numbers = Room.objects.filter(Q(dorm=validated_data['dorm'])
+                                           & Q(floor=floor)).values_list('room_number', flat=True)
+        if room_numbers:
+            room_numbers = list(map(lambda x: int(x), room_numbers))
+            room_numbers.sort()
+            highest_room_number = room_numbers[-1]
+            room_number = str(highest_room_number + 1)
+        else:
+            room_number = f'{floor}01'
+        room = Room.objects.create(room_number=room_number, floor=floor, **validated_data)
+        return room
 
 
 class DormSerializer(serializers.ModelSerializer):
