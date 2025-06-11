@@ -3,7 +3,6 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from .serializers import UserRegisterSerializer
 from drf_spectacular.utils import extend_schema
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from . import models
 
