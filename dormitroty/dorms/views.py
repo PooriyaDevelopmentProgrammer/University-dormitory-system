@@ -19,9 +19,12 @@ class DormAPIView(APIView):
     @extend_schema(
         summary="List Dorms",
         parameters=[
-            {'name': 'name', 'in': 'query', 'description': 'Filter by dorm name', 'required': False, 'schema': {'type': 'string'}},
-            {'name': 'location', 'in': 'query', 'description': 'Filter by dorm location', 'required': False, 'schema': {'type': 'string'}},
-            {'name': 'gender_restriction', 'in': 'query', 'description': 'Filter by gender restriction', 'required': False, 'schema': {'type': 'string'}}
+            {'name': 'name', 'in': 'query', 'description': 'Filter by dorm name', 'required': False,
+             'schema': {'type': 'string'}},
+            {'name': 'location', 'in': 'query', 'description': 'Filter by dorm location', 'required': False,
+             'schema': {'type': 'string'}},
+            {'name': 'gender_restriction', 'in': 'query', 'description': 'Filter by gender restriction',
+             'required': False, 'schema': {'type': 'string'}}
         ],
         responses={
             200: DormSerializer(many=True),
@@ -62,6 +65,50 @@ class DormAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+# Python
+class DormDetailsAPIView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    @extend_schema(
+        summary="Update Dorm",
+        request=DormSerializer,
+        responses={
+            200: DormSerializer,
+            400: "Bad Request",
+            404: "Not Found",
+            401: "Unauthorized",
+        }
+    )
+    def put(self, request, pk):
+        try:
+            dorm = Dorm.objects.get(pk=pk)
+        except Dorm.DoesNotExist:
+            return Response({"detail": "Dorm not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = DormSerializer(dorm, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @extend_schema(
+        summary="Delete Dorm",
+        responses={
+            204: "No Content",
+            404: "Not Found",
+            401: "Unauthorized",
+        }
+    )
+    def delete(self, request, pk):
+        try:
+            dorm = Dorm.objects.get(pk=pk)
+        except Dorm.DoesNotExist:
+            return Response({"detail": "Dorm not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        dorm.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class RoomAPIView(APIView):
     permission_classes = [permissions.IsAdminUser]
 
@@ -73,9 +120,12 @@ class RoomAPIView(APIView):
     @extend_schema(
         summary="List Rooms",
         parameters=[
-            {'name': 'dorm_id', 'in': 'query', 'description': 'Filter by dorm ID', 'required': False, 'schema': {'type': 'integer'}},
-            {'name': 'floor', 'in': 'query', 'description': 'Filter by floor number', 'required': False, 'schema': {'type': 'integer'}},
-            {'name': 'capacity', 'in': 'query', 'description': 'Filter by room capacity', 'required': False, 'schema': {'type': 'integer'}}
+            {'name': 'dorm_id', 'in': 'query', 'description': 'Filter by dorm ID', 'required': False,
+             'schema': {'type': 'integer'}},
+            {'name': 'floor', 'in': 'query', 'description': 'Filter by floor number', 'required': False,
+             'schema': {'type': 'integer'}},
+            {'name': 'capacity', 'in': 'query', 'description': 'Filter by room capacity', 'required': False,
+             'schema': {'type': 'integer'}}
         ],
         responses={
             200: RoomSerializer(many=True),
@@ -122,9 +172,12 @@ class BedAPIView(APIView):
     @extend_schema(
         summary="List Beds",
         parameters=[
-            {'name': 'room_id', 'in': 'query', 'description': 'Filter by room ID', 'required': False, 'schema': {'type': 'integer'}},
-            {'name': 'bed_number', 'in': 'query', 'description': 'Filter by bed number', 'required': False, 'schema': {'type': 'string'}},
-            {'name': 'is_occupied', 'in': 'query', 'description': 'Filter by occupancy status', 'required': False, 'schema': {'type': 'boolean'}}
+            {'name': 'room_id', 'in': 'query', 'description': 'Filter by room ID', 'required': False,
+             'schema': {'type': 'integer'}},
+            {'name': 'bed_number', 'in': 'query', 'description': 'Filter by bed number', 'required': False,
+             'schema': {'type': 'string'}},
+            {'name': 'is_occupied', 'in': 'query', 'description': 'Filter by occupancy status', 'required': False,
+             'schema': {'type': 'boolean'}}
         ],
         responses={
             200: BedSerializer(many=True),
