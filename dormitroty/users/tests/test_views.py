@@ -25,7 +25,7 @@ class UserRegisterViewTest(APITestCase):
         self.assertEqual(response.data['message'], 'User created successfully')
 
     def test_get_all_users(self):
-        self.user = User.objects.create_user(**self.user_data)
+        self.user = User.objects.create_superuser(**self.user_data)
         self.client.force_authenticate(user=self.user)
         response = self.client.get('/api/users/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
