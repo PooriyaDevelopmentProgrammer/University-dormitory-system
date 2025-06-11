@@ -12,6 +12,10 @@ class DormAPIViewTest(APITestCase):
             student_code='11111111111', password='admin123', email='admin@example.com',
             national_code='1234567890', phone_number='+989398413991'
         )
+        self.normal_user = User.objects.create_user(
+            student_code='11111111112', password='normal123', email='normal@example.com',
+            national_code='1234567891', phone_number='+989398413992'
+        )
         self.client = APIClient()
         self.client.force_authenticate(user=self.admin_user)
 
@@ -36,9 +40,36 @@ class DormAPIViewTest(APITestCase):
         self.assertEqual(response.data['name'], "Dorm C")
         self.assertEqual(response.data['location'], "Location C")
 
+    def test_search_dorms(self):
+        response = self.client.get('/api/dorms/', {'name': 'Dorm A'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['name'], 'Dorm A')
+
+    def test_create_dorm_as_non_admin(self):
+        self.client.force_authenticate(user=self.normal_user)
+        response = self.client.post('/api/dorms/', {
+            "name": "Dorm B",
+            "location": "Location B",
+            "gender_restriction": "female",
+            "description": "A dorm for female students."
+        })
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
 
 class RoomModelTest(APITestCase):
     def setUp(self):
+        self.admin_user = User.objects.create_superuser(
+            student_code='11111111111', password='admin123', email='admin@example.com',
+            national_code='1234567890', phone_number='+989398413991'
+        )
+        self.normal_user = User.objects.create_user(
+            student_code='11111111112', password='normal123', email='normal@example.com',
+            national_code='1234567891', phone_number='+989398413992'
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.admin_user)
+
         self.dorm = Dorm.objects.create(
             name="Dorm B",
             location="Location B",
@@ -71,9 +102,42 @@ class RoomModelTest(APITestCase):
         Bed.objects.create(room=room, bed_number="3", is_occupied=False)
         self.assertEqual(room.available_beds(), 2)
 
+    def test_search_rooms(self):
+        Room.objects.create(
+            dorm=self.dorm,
+            room_number="101",
+            capacity=4,
+            floor=1
+        )
+        response = self.client.get('/api/dorms/rooms/', {'dorm_id': self.dorm.id})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['room_number'], "101")
+
+    def test_create_room_as_non_admin(self):
+        self.client.force_authenticate(user=self.normal_user)
+        response = self.client.post('/api/dorms/rooms/', {
+            "dorm": self.dorm.id,
+            "room_number": "102",
+            "capacity": 3,
+            "floor": 2
+        })
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
 
 class BedModelTest(APITestCase):
     def setUp(self):
+        self.admin_user = User.objects.create_superuser(
+            student_code='11111111111', password='admin123', email='admin@example.com',
+            national_code='1234567890', phone_number='+989398413991'
+        )
+        self.normal_user = User.objects.create_user(
+            student_code='11111111112', password='normal123', email='normal@example.com',
+            national_code='1234567891', phone_number='+989398413992'
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.admin_user)
+
         self.dorm = Dorm.objects.create(
             name="Dorm C",
             location="Location C",
@@ -113,6 +177,17 @@ class BedModelTest(APITestCase):
         self.assertIn(bed1, beds)
         self.assertIn(bed2, beds)
         self.assertEqual(len(beds), 2)
+
+    def test_search_beds(self):
+        Bed.objects.create(
+            room=self.room,
+            bed_number="1",
+            is_occupied=False
+        )
+        response = self.client.get('/api/dorms/beds/', {'room_id': self.room.id})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['bed_number'], "1")
 
 
 # Python
