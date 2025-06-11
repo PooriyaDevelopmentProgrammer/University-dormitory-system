@@ -173,6 +173,62 @@ class BedCapacityAPITest(APITestCase):
             "bed_number": "3",
             "is_occupied": False
         })
-        print(response.data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("The number of beds cannot exceed the room's capacity", str(response.data['non_field_errors'][0]))
+
+
+# Python
+from django.test import TestCase
+from dorms.models import Dorm, Room
+from dorms.serializers import RoomSerializer
+
+
+class RoomNumberAlgorithmTest(TestCase):
+    def setUp(self):
+        self.dorm = Dorm.objects.create(
+            name="Dorm A",
+            location="Location A",
+            gender_restriction="male",
+            description="A dorm for male students."
+        )
+
+    def test_generate_room_number_no_existing_rooms(self):
+        # Test when no rooms exist in the dorm
+        data = {
+            "capacity": 2,
+            "floor": 1,
+            "dorm": self.dorm.id
+        }
+        serializer = RoomSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        room = serializer.save()
+        self.assertEqual(room.room_number, "101")
+
+    def test_generate_room_number_with_existing_rooms(self):
+        # Test when rooms already exist in the dorm
+        Room.objects.create(dorm=self.dorm, room_number="101", capacity=2, floor=1)
+        Room.objects.create(dorm=self.dorm, room_number="102", capacity=2, floor=1)
+
+        data = {
+            "capacity": 2,
+            "floor": 1,
+            "dorm": self.dorm.id
+        }
+        serializer = RoomSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        room = serializer.save()
+        self.assertEqual(room.room_number, "103")
+
+    def test_generate_room_number_different_floor(self):
+        # Test when creating a room on a different floor
+        Room.objects.create(dorm=self.dorm, room_number="101", capacity=2, floor=1)
+
+        data = {
+            "capacity": 2,
+            "floor": 2,
+            "dorm": self.dorm.id
+        }
+        serializer = RoomSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        room = serializer.save()
+        self.assertEqual(room.room_number, "201")
