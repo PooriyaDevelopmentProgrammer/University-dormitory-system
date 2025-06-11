@@ -124,6 +124,25 @@ class RoomModelTest(APITestCase):
         })
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_bed_creation_for_room(self):
+        # Create a Room instance with a specific capacity
+        data = {
+            "dorm": self.dorm.id,
+            "room_number": "101",
+            "capacity": 3,
+            "floor": 1
+        }
+        serializer = RoomSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        room = serializer.save()
+
+        # Verify that the correct number of beds are created
+        self.assertEqual(room.beds.count(), 3)
+
+        # Check the bed numbers
+        bed_numbers = [bed.bed_number for bed in room.beds.all()]
+        self.assertListEqual(bed_numbers, ["Bed1", "Bed2", "Bed3"])
+
 
 class BedModelTest(APITestCase):
     def setUp(self):
