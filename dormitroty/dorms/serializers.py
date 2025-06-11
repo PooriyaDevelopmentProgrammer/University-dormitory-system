@@ -25,7 +25,16 @@ class RoomSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Room
-        fields = ['id', 'capacity', 'floor', 'dorm', 'beds']
+        fields = ['id', 'room_number', 'capacity', 'floor', 'dorm', 'beds']
+        extra_kwargs = {
+            'room_number': {'required': False},
+        }
+    def validate(self, data):
+        if 'room_number' in data and not data['room_number']:
+            raise serializers.ValidationError({
+                "room_number": "This field cannot be blank."
+            })
+        return data
 
     def create(self, validated_data):
         floor = validated_data.pop('floor')
@@ -35,10 +44,10 @@ class RoomSerializer(serializers.ModelSerializer):
             room_numbers = list(map(lambda x: int(x), room_numbers))
             room_numbers.sort()
             highest_room_number = room_numbers[-1]
-            room_number = str(highest_room_number + 1)
+            validated_data['room_number'] = str(highest_room_number + 1)
         else:
-            room_number = f'{floor}01'
-        room = Room.objects.create(room_number=room_number, floor=floor, **validated_data)
+            validated_data['room_number'] = f'{floor}01'
+        room = Room.objects.create(floor=floor, **validated_data)
         return room
 
 
