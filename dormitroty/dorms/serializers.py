@@ -7,6 +7,15 @@ class BedSerializer(serializers.ModelSerializer):
         model = Bed
         fields = ['id', 'bed_number', 'is_occupied', 'room']
 
+    def validate(self, data):
+        room = data.get('room')
+
+        if room and room.beds.count() >= room.capacity:
+            raise serializers.ValidationError({
+                "The number of beds cannot exceed the room's capacity"
+            })
+        return data
+
 
 class RoomSerializer(serializers.ModelSerializer):
     beds = BedSerializer(many=True, read_only=True)
