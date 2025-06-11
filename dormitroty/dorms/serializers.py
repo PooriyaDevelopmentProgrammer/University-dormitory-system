@@ -1,5 +1,3 @@
-from math import floor
-
 from rest_framework import serializers
 from dorms.models import Dorm, Room, Bed
 from django.db.models import Q
@@ -28,7 +26,9 @@ class RoomSerializer(serializers.ModelSerializer):
         fields = ['id', 'room_number', 'capacity', 'floor', 'dorm', 'beds']
         extra_kwargs = {
             'room_number': {'required': False},
+            'beds': {'required': False},
         }
+
     def validate(self, data):
         if 'room_number' in data and not data['room_number']:
             raise serializers.ValidationError({
@@ -47,7 +47,11 @@ class RoomSerializer(serializers.ModelSerializer):
             validated_data['room_number'] = str(highest_room_number + 1)
         else:
             validated_data['room_number'] = f'{floor}01'
+
         room = Room.objects.create(floor=floor, **validated_data)
+        for _ in range(validated_data['capacity']):
+            Bed.objects.create(room=room, bed_number=f'Bed{room.beds.count() + 1}')
+
         return room
 
 
