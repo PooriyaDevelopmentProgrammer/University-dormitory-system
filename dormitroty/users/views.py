@@ -42,9 +42,26 @@ class UserRegisterView(APIView):
     )
     def get(self, request):
         """
-        get all users from database
+        Get all users or search users based on query parameters
         """
-        users = models.User.objects.all()
+        query_params = request.query_params
+        filters = {}
+        if 'email' in query_params:
+            filters['email__icontains'] = query_params['email']
+        if 'student_code' in query_params:
+            filters['student_code__icontains'] = query_params['student_code']
+        if 'national_code' in query_params:
+            filters['national_code__icontains'] = query_params['national_code']
+        if 'phone_number' in query_params:
+            filters['phone_number__icontains'] = query_params['phone_number']
+        if 'gender' in query_params:
+            filters['gender'] = query_params['gender']
+        if 'first_name' in query_params:
+            filters['first_name__icontains'] = query_params['first_name']
+        if 'last_name' in query_params:
+            filters['last_name__icontains'] = query_params['last_name']
+
+        users = models.User.objects.filter(**filters)
         serializer = UserRegisterSerializer(users, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 class UserDetailView(APIView):
