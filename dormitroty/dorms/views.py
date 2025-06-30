@@ -1,9 +1,11 @@
+import uuid
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from dorms.models import Dorm, Room, Bed
 from dorms.serializers import DormSerializer, RoomSerializer, BedSerializer
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import permissions
 
 
@@ -19,12 +21,10 @@ class DormAPIView(APIView):
     @extend_schema(
         summary="List Dorms",
         parameters=[
-            {'name': 'name', 'in': 'query', 'description': 'Filter by dorm name', 'required': False,
-             'schema': {'type': 'string'}},
-            {'name': 'location', 'in': 'query', 'description': 'Filter by dorm location', 'required': False,
-             'schema': {'type': 'string'}},
-            {'name': 'gender_restriction', 'in': 'query', 'description': 'Filter by gender restriction',
-             'required': False, 'schema': {'type': 'string'}}
+            OpenApiParameter(name='name', type=str, description='Filter by dorm name', required=False),
+            OpenApiParameter(name='location', type=str, description='Filter by dorm location', required=False),
+            OpenApiParameter(name='gender_restriction', type=str, description='Filter by gender restriction',
+                             required=False),
         ],
         responses={
             200: DormSerializer(many=True),
@@ -120,12 +120,12 @@ class RoomAPIView(APIView):
     @extend_schema(
         summary="List Rooms",
         parameters=[
-            {'name': 'dorm_id', 'in': 'query', 'description': 'Filter by dorm ID', 'required': False,
-             'schema': {'type': 'integer'}},
-            {'name': 'floor', 'in': 'query', 'description': 'Filter by floor number', 'required': False,
-             'schema': {'type': 'integer'}},
-            {'name': 'capacity', 'in': 'query', 'description': 'Filter by room capacity', 'required': False,
-             'schema': {'type': 'integer'}}
+            OpenApiParameter(name='dorm_id', description='Filter by dorm ID',
+                             required=False, type=uuid.UUID),
+            OpenApiParameter(name='floor', description='Filter by floor number',
+                             required=False, type=str),
+            OpenApiParameter(name='capacity', description='Filter by room capacity',
+                             required=False, type=int),
         ],
         responses={
             200: RoomSerializer(many=True),
@@ -172,12 +172,12 @@ class BedAPIView(APIView):
     @extend_schema(
         summary="List Beds",
         parameters=[
-            {'name': 'room_id', 'in': 'query', 'description': 'Filter by room ID', 'required': False,
-             'schema': {'type': 'integer'}},
-            {'name': 'bed_number', 'in': 'query', 'description': 'Filter by bed number', 'required': False,
-             'schema': {'type': 'string'}},
-            {'name': 'is_occupied', 'in': 'query', 'description': 'Filter by occupancy status', 'required': False,
-             'schema': {'type': 'boolean'}}
+            OpenApiParameter(name='room_id', description='Filter by room ID',
+                             required=False, type=uuid.UUID),
+            OpenApiParameter(name='bed_number', description='Filter by bed number',
+                             required=False, type=str),
+            OpenApiParameter(name='is_occupied',
+                             description='Filter by occupancy status', required=False, type=bool),
         ],
         responses={
             200: BedSerializer(many=True),
