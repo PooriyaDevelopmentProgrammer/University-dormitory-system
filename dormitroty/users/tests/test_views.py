@@ -59,6 +59,7 @@ class UserDetailsViewTest(APITestCase):
         self.assertEqual(self.user.last_name, "UpdatedLastName")
         self.assertEqual(self.user.phone_number, "09129876543")
         self.assertTrue(self.user.check_password("newpassword123"))
+
     def test_delete_user(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.delete(f'/api/users/details/{self.user.id}/')
@@ -74,6 +75,85 @@ class UserDetailsViewTest(APITestCase):
         self.assertEqual(response.data['national_code'], self.user.national_code)
         self.assertEqual(response.data['phone_number'], self.user.phone_number)
 
+
+class UserSearchAPITest(APITestCase):
+    def setUp(self):
+        self.user1 = User.objects.create(
+            email="test1@example.com",
+            student_code="12345",
+            national_code="67890",
+            phone_number="1234567890",
+            gender="male",
+            first_name='John',
+            last_name='Smith'
+        )
+        self.user2 = User.objects.create(
+            email="test2@example.com",
+            student_code="54321",
+            national_code="09876",
+            phone_number="0987654321",
+            gender="female"
+        )
+
+        self.admin_user = User.objects.create_superuser(
+            email="test3@example.com",
+            student_code="54621",
+            national_code="123456789",
+            phone_number="0987456516",
+            gender="female",
+            password="adminpassword123"
+        )
+        self.client = APIClient()
+        self.search_url = '/api/users/'
+
+    def test_search_users_by_email(self):
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get(self.search_url, {'email': 'test1@example.com'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['email'], "test1@example.com")
+
+    def test_search_users_by_student_code(self):
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get(self.search_url, {'student_code': '54321'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['student_code'], "54321")
+
+    def test_search_users_by_national_code(self):
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get(self.search_url, {'national_code': '67890'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['national_code'], "67890")
+
+    def test_search_users_by_phone_number(self):
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get(self.search_url, {'phone_number': '0987654321'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['phone_number'], "0987654321")
+
+    def test_search_users_by_gender(self):
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get(self.search_url, {'gender': 'male'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['gender'], "male")
+
+    def test_search_users_by_first_name(self):
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get(self.search_url, {'first_name': 'John'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['first_name'], "John")
+
+    def test_search_users_by_last_name(self):
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get(self.search_url, {'last_name': 'Smith'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['last_name'], "Smith")
 
 
 class ValidatePhoneNumberTest(APITestCase):
