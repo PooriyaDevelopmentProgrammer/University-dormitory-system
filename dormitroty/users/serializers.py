@@ -23,15 +23,22 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop('password')
+        user_permissions = validated_data.pop('user_permissions', None)
         user = User.objects.create_user(**validated_data)
         user.set_password(password)
         user.save()
+        if user_permissions:
+            user.user_permissions.set(user_permissions)
+
         return user
 
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
+        user_permissions = validated_data.pop('user_permissions', None)  # Extract permissions if provided
+
         if password:
             instance.set_password(password)
+        if user_permissions:
+            instance.user_permissions.set(user_permissions)
+
         return super().update(instance, validated_data)
-
-
