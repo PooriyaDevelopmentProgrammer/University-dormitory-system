@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from .serializers import UserRegisterSerializer
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework_simplejwt.tokens import RefreshToken
 from . import models
 
@@ -12,7 +12,6 @@ class UserRegisterView(APIView):
     documentation for UserRegisterView with spectacular
     """
     permission_classes = [permissions.IsAdminUser]
-
 
     def get_permissions(self):
         if self.request.method == 'POST':
@@ -33,12 +32,22 @@ class UserRegisterView(APIView):
             serializer.save()
             return Response({'message': 'User created successfully'}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     @extend_schema(
-        summary="Get all users",
+        summary="Get all users or search users",
         responses={
-            200: {'data':UserRegisterSerializer(many=True), 'description': 'List of all users'},
-            401: {'description': 'not authenticated'},
-        }
+            200: UserRegisterSerializer(many=True),
+            400: {'description': 'Invalid query parameters'}
+        },
+        parameters=[
+            OpenApiParameter(name='email', type=str, description='Filter by email'),
+            OpenApiParameter(name='student_code', type=str, description='Filter by student code'),
+            OpenApiParameter(name='national_code', type=str, description='Filter by national code'),
+            OpenApiParameter(name='phone_number', type=str, description='Filter by phone number'),
+            OpenApiParameter(name='gender', type=str, description='Filter by gender'),
+            OpenApiParameter(name='first_name', type=str, description='Filter by first name'),
+            OpenApiParameter(name='last_name', type=str, description='Filter by last name'),
+        ]
     )
     def get(self, request):
         """
@@ -64,6 +73,8 @@ class UserRegisterView(APIView):
         users = models.User.objects.filter(**filters)
         serializer = UserRegisterSerializer(users, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 class UserDetailView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -137,5 +148,3 @@ class LogoutView(APIView):
             return Response({'message': 'Successfully logged out'}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
