@@ -71,3 +71,46 @@ class BedModelTest(TestCase):
 
     def test_bed_string_representation(self):
         self.assertEqual(str(self.bed), "Bed B1 in Room 101")
+
+
+class RoomFullSignalTest(TestCase):
+    def setUp(self):
+        self.dorm = Dorm.objects.create(
+            name="Test Dorm",
+            location="Test Location",
+            gender_restriction="male"
+        )
+        self.room = Room.objects.create(
+            dorm=self.dorm,
+            room_number="101",
+            capacity=2,
+            floor=1
+        )
+        self.bed1 = Bed.objects.create(room=self.room, bed_number="1", is_occupied=False)
+        self.bed2 = Bed.objects.create(room=self.room, bed_number="2", is_occupied=False)
+
+    def test_room_full_becomes_true_when_all_beds_occupied(self):
+        self.assertFalse(self.room.full)
+
+        self.bed1.is_occupied = True
+        self.bed1.save()
+        self.room.refresh_from_db()
+        self.assertFalse(self.room.full)
+
+        self.bed2.is_occupied = True
+        self.bed2.save()
+        self.room.refresh_from_db()
+        self.assertTrue(self.room.full)
+
+    def test_room_full_becomes_false_when_bed_is_freed(self):
+        self.bed1.is_occupied = True
+        self.bed1.save()
+        self.bed2.is_occupied = True
+        self.bed2.save()
+        self.room.refresh_from_db()
+        self.assertTrue(self.room.full)
+
+        self.bed2.is_occupied = False
+        self.bed2.save()
+        self.room.refresh_from_db()
+        self.assertFalse(self.room.full)
