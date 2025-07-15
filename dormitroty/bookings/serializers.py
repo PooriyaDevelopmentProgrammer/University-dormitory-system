@@ -2,6 +2,7 @@ from rest_framework import serializers
 from bookings.models import Booking
 from dorms.models import Room
 
+
 class BookingCreateSerializer(serializers.ModelSerializer):
     dorm_id = serializers.IntegerField(write_only=True)
     room_id = serializers.IntegerField(write_only=True)
@@ -10,7 +11,7 @@ class BookingCreateSerializer(serializers.ModelSerializer):
         model = Booking
         fields = '__all__'
         extra_kwargs = {
-            'student':{'required': False},
+            'student': {'required': False},
         }
 
     def validate(self, data):
@@ -38,3 +39,28 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             room=room,
             status=Booking.BookingStatus.PENDING
         )
+
+
+class BookingUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Booking
+        fields = ['status', 'rejection_reason', 'bed', 'start_date', 'end_date']
+
+    def validate(self, data):
+        if data.get('status') == Booking.BookingStatus.REJECTED and not data.get('rejection_reason'):
+            raise serializers.ValidationError("لطفاً دلیل رد درخواست را وارد کنید.")
+        elif data.get('status') == Booking.BookingStatus.APPROVED and not data.get('bed'):
+            raise serializers.ValidationError("لطفاً تخت مورد نظر را انتخاب کنید.")
+        return data
+
+    def update(self, instance, validated_data):
+        new_bed = validated_data.get('bed')
+        if new_bed:
+            new_bed.is_occupied = True
+            new_bed.save()
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
