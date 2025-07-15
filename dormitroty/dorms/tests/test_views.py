@@ -57,7 +57,6 @@ class DormAPIViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
-
 class DormDetailsAPITest(APITestCase):
     def setUp(self):
         self.admin_user = User.objects.create_superuser(
@@ -179,7 +178,7 @@ class RoomModelTest(APITestCase):
 
         # Check the bed numbers
         bed_numbers = [bed.bed_number for bed in room.beds.all()]
-        self.assertListEqual(bed_numbers, ["Bed1", "Bed2", "Bed3"])
+        self.assertListEqual(bed_numbers, ["1", "2", "3"])
 
 
 class BedModelTest(APITestCase):
@@ -307,6 +306,35 @@ class BedCapacityAPITest(APITestCase):
         })
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("The number of beds cannot exceed the room's capacity", str(response.data['non_field_errors'][0]))
+
+    def test_create_bed_and_check_resequence_and_full_false(self):
+        Bed.objects.create(room=self.room, is_occupied=True)
+        response = self.client.post('/api/dorms/beds/', {
+            "room": self.room.id,
+            "bed_number": 1,
+            "is_occupied": False
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(self.room.beds.count(), 2)
+
+        bed_numbers = [b.bed_number for b in self.room.beds.order_by('id')]
+        self.assertEqual(bed_numbers, ['1', '2'])
+
+        self.room.refresh_from_db()
+        self.assertFalse(self.room.full)
+
+    def test_create_bed_and_check_room_becomes_full(self):
+        response = self.client.post('/api/dorms/beds/', {
+            "room": self.room.id,
+            "bed_number": 1,
+            "is_occupied": True,
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        self.room.refresh_from_db()
+        self.assertTrue(self.room.full)
 
 
 # Python
