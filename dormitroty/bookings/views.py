@@ -41,10 +41,10 @@ class BookingListCreateAPIView(APIView):
 
     def get(self, request):
         user = User.objects.filter(id=request.user.id).first()
-        if User.is_superuser or User.is_admin:
+        if user.is_superuser or user.is_admin:
             bookings = Booking.objects.all()
         else:
-            booking = Booking.objects.filter(student=user)
+            bookings = Booking.objects.filter(student=user)
         serializer = BookingCreateSerializer(bookings, many=True)
         return Response(serializer.data)
 
