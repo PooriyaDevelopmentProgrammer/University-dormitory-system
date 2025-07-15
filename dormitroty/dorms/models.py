@@ -36,10 +36,15 @@ class Room(models.Model):
             self.full = False
             self.save()
 
+    def resequence_beds_for_room(self):
+        beds = self.beds.order_by('bed_number')
+        for i, bed in enumerate(beds, start=1):
+            bed.bed_number = str(i)
+            bed.save()
 
 class Bed(models.Model):
     room = models.ForeignKey(Room, related_name='beds', on_delete=models.CASCADE)
-    bed_number = models.CharField(max_length=10)
+    bed_number = models.CharField(max_length=10, blank=True)
     is_occupied = models.BooleanField(default=False)
 
     def __str__(self):
