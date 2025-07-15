@@ -114,3 +114,30 @@ class RoomFullSignalTest(TestCase):
         self.bed2.save()
         self.room.refresh_from_db()
         self.assertFalse(self.room.full)
+
+class BedResequenceSignalTest(TestCase):
+    def setUp(self):
+        self.dorm = Dorm.objects.create(
+            name="Test Dorm",
+            location="Test Location",
+            gender_restriction="male"
+        )
+        self.room = Room.objects.create(
+            dorm=self.dorm,
+            room_number="101",
+            capacity=3,
+            floor=1
+        )
+
+        self.bed1 = Bed.objects.create(room=self.room, bed_number="1")
+        self.bed2 = Bed.objects.create(room=self.room, bed_number="2")
+        self.bed3 = Bed.objects.create(room=self.room, bed_number="3")
+
+    def test_bed_number_resequence_after_delete_and_add(self):
+        self.bed2.delete()
+
+        beds = self.room.beds.order_by('bed_number')
+        expected_numbers_after_delete = ["1", "2"]
+        actual_numbers_after_delete = [bed.bed_number for bed in beds]
+        self.assertEqual(actual_numbers_after_delete, expected_numbers_after_delete)
+
