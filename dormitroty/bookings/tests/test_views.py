@@ -80,3 +80,67 @@ class BookingListCreateAPITest(APITestCase):
         response = self.client.post('/api/bookings/', data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("ظرفیت این اتاق تکمیل شده است.", str(response.data))
+
+class BookingListAccessLevelTest(APITestCase):
+    def setUp(self):
+        # Create a normal user
+        self.user = User.objects.create_user(
+            email="testuser@example.com",
+            student_code="12345",
+            national_code="987654321",
+            phone_number="1234567890",
+            password="password123"
+        )
+
+        # Create an admin user
+        self.admin_user = User.objects.create_superuser(
+            email="testadmin@example.com",
+            student_code="54321",
+            national_code="123456789",
+            phone_number="0987654321",
+            password="adminpassword"
+        )
+
+        # Create a test dorm and room
+        self.dorm = Dorm.objects.create(name="Dorm A")
+        self.room = Room.objects.create(dorm=self.dorm, full=False, floor=2, capacity=4)
+
+        # Create bookings for the normal user
+        self.booking1 = Booking.objects.create(
+            student=self.user,
+            bed=None,
+            status=Booking.BookingStatus.PENDING,
+            start_date="2023-01-01",
+            end_date="2023-01-10"
+        )
+
+        # Create bookings for another user
+        self.other_user = User.objects.create_user(
+            email="otheruser@example.com",
+            student_code="67890",
+            national_code="987654322",
+            phone_number="1234567899",
+            password="password456"
+        )
+        self.booking2 = Booking.objects.create(
+            student=self.other_user,
+            bed=None,
+            status=Booking.BookingStatus.PENDING,
+            start_date="2023-02-01",
+            end_date="2023-02-10"
+        )
+
+    def test_get_bookings_as_normal_user(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get('/api/bookings/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)  # Normal user should only see their own bookings
+        self.assertEqual(response.data[0]['student'], self.user.id)
+
+    def test_get_bookings_as_admin_user(self):
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get('/api/bookings/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)  # Admin should see all bookings
+        self.assertIn(self.booking1.student.id, [booking['student'] for booking in response.data])
+        self.assertIn(self.booking2.student.id, [booking['student'] for booking in response.data])
