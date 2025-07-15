@@ -1,7 +1,7 @@
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from dorms.models import Dorm, Room
+from dorms.models import Dorm, Room, Bed
 from bookings.models import Booking
 
 User = get_user_model()
@@ -144,3 +144,53 @@ class BookingListAccessLevelTest(APITestCase):
         self.assertEqual(len(response.data), 2)  # Admin should see all bookings
         self.assertIn(self.booking1.student.id, [booking['student'] for booking in response.data])
         self.assertIn(self.booking2.student.id, [booking['student'] for booking in response.data])
+
+class BookingDetailAPITest(APITestCase):
+    def setUp(self):
+        # Create a test user
+        self.user = User.objects.create_user(
+            email="testuser@example.com",
+            student_code="12345",
+            national_code="987654321",
+            phone_number="1234567890",
+            password="password123"
+        )
+        self.client.force_authenticate(user=self.user)
+
+        # Create a test dorm and room
+        self.dorm = Dorm.objects.create(name="Dorm A")
+        self.room = Room.objects.create(dorm=self.dorm, full=False, floor=2, capacity=4)
+        self.bed = Bed.objects.create(room=self.room, is_occupied=False)
+        self.room.resequence_beds_for_room()
+        # Create a test booking
+        self.booking = Booking.objects.create(
+            student=self.user,
+            room=self.room,
+            status=Booking.BookingStatus.PENDING,
+            start_date="2023-01-01",
+            end_date="2023-01-10"
+        )
+
+    def test_get_booking_details(self):
+        response = self.client.get(f'/api/bookings/details/{self.booking.id}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], self.booking.id)
+
+    def test_update_booking(self):
+        updated_data = {
+            "status": Booking.BookingStatus.APPROVED,
+            "bed": self.bed.id,
+            "start_date": "2023-01-05",
+            "end_date": "2023-01-15"
+        }
+        response = self.client.put(f'/api/bookings/details/{self.booking.id}/', data=updated_data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Bed.objects.first().is_occupied, True)
+        self.assertEqual(response.data['status'], Booking.BookingStatus.APPROVED)
+        self.assertEqual(response.data['start_date'], "2023-01-05")
+        self.assertEqual(response.data['end_date'], "2023-01-15")
+
+    def test_delete_booking(self):
+        response = self.client.delete(f'/api/bookings/details/{self.booking.id}/')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Booking.objects.filter(id=self.booking.id).exists())
