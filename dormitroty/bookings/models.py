@@ -14,8 +14,8 @@ class Booking(models.Model):
     room = models.ForeignKey(Room, on_delete=models.SET_NULL, null=True, blank=True)
     bed = models.ForeignKey(Bed, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=10, choices=BookingStatus.choices, default=BookingStatus.PENDING)
-    start_date = models.DateField()
-    end_date = models.DateField()
+    start_date = models.DateField(default="2023-02-01")
+    end_date = models.DateField(default="2023-02-01")
     rejection_reason = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
