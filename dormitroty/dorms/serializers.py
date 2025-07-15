@@ -17,6 +17,14 @@ class BedSerializer(serializers.ModelSerializer):
             })
         return data
 
+    def create(self, validated_data):
+        room = validated_data.get('room')
+        validated_data.pop('bed_number')
+        bed = Bed.objects.create(**validated_data)
+        room.set_full_true()
+        room.resequence_beds_for_room()
+        return bed
+
 
 class RoomSerializer(serializers.ModelSerializer):
     beds = BedSerializer(many=True, read_only=True)
@@ -50,7 +58,7 @@ class RoomSerializer(serializers.ModelSerializer):
 
         room = Room.objects.create(floor=floor, **validated_data)
         for _ in range(validated_data['capacity']):
-            Bed.objects.create(room=room, bed_number=f'Bed{room.beds.count() + 1}')
+            Bed.objects.create(room=room, bed_number=room.beds.count() + 1)
 
         return room
 
