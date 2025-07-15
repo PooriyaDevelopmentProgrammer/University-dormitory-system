@@ -65,7 +65,6 @@ class BookingListCreateAPITest(APITestCase):
             "end_date": "2023-02-10"
         }
         response = self.client.post('/api/bookings/', data)
-        print(response.data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("اتاق انتخاب‌شده در این خوابگاه وجود ندارد.", str(response.data['non_field_errors'][0]))
 
