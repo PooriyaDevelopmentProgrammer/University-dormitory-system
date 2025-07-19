@@ -43,7 +43,25 @@ class RoomModelTest(TestCase):
 
     def test_room_string_representation(self):
         self.assertEqual(str(self.room), "Room 101 - Test Dorm")
+    def test_create_room_with_price(self):
+        room = Room.objects.create(
+            dorm=self.dorm,
+            room_number="101",
+            capacity=4,
+            floor=1,
+            price=500000
+        )
+        self.assertEqual(room.price, 500000)
+        self.assertEqual(str(room), "Room 101 - Test Dorm")
 
+    def test_default_price(self):
+        room = Room.objects.create(
+            dorm=self.dorm,
+            room_number="102",
+            capacity=4,
+            floor=1
+        )
+        self.assertEqual(room.price, 0)  #
 
 class BedModelTest(TestCase):
     def setUp(self):
