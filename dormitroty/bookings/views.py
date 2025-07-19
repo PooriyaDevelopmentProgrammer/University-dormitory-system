@@ -6,6 +6,7 @@ from bookings.serializers import BookingCreateSerializer, BookingUpdateSerialize
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
+from bookings.pagination import StandardResultsSetPagination
 
 User = get_user_model()
 
@@ -31,8 +32,12 @@ class BookingListCreateAPIView(APIView):
             bookings = Booking.objects.all()
         else:
             bookings = Booking.objects.filter(student=user)
-        serializer = BookingCreateSerializer(bookings, many=True)
-        return Response(serializer.data)
+
+        paginator = StandardResultsSetPagination()
+        paginated_queryset = paginator.paginate_queryset(bookings, request)
+        serializer = BookingCreateSerializer(paginated_queryset, many=True)
+
+        return paginator.get_paginated_response(serializer.data)
 
     @extend_schema(
         methods=["POST"],
