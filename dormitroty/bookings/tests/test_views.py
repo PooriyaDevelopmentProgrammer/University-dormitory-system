@@ -190,7 +190,25 @@ class BookingDetailAPITest(APITestCase):
         self.assertEqual(response.data['start_date'], "2023-01-05")
         self.assertEqual(response.data['end_date'], "2023-01-15")
 
-    def test_delete_booking(self):
+    def test_delete_booking_with_bed(self):
+        # Assign a bed to the booking
+        self.booking.bed = self.bed
+        self.booking.save()
+        self.bed.is_occupied = True
+        self.bed.save()
+
+        # Ensure the bed is occupied before deletion
+        self.assertTrue(self.bed.is_occupied)
+
+        # Perform the delete request
         response = self.client.delete(f'/api/bookings/details/{self.booking.id}/')
+
+        # Assert the response status
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        # Assert the booking is deleted
         self.assertFalse(Booking.objects.filter(id=self.booking.id).exists())
+
+        # Assert the bed is no longer occupied
+        self.bed.refresh_from_db()
+        self.assertFalse(self.bed.is_occupied)
