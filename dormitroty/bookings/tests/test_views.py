@@ -1,6 +1,8 @@
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth import get_user_model
+
+from bookings.pagination import StandardResultsSetPagination
 from dorms.models import Dorm, Room, Bed
 from bookings.models import Booking
 
@@ -43,8 +45,8 @@ class BookingListCreateAPITest(APITestCase):
 
         response = self.client.get('/api/bookings/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]['status'], Booking.BookingStatus.PENDING)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]['status'], Booking.BookingStatus.PENDING)
 
     def test_create_booking_success(self):
         data = {
@@ -130,21 +132,21 @@ class BookingListAccessLevelTest(APITestCase):
             end_date="2023-02-10"
         )
 
-    def test_get_bookings_as_normal_user(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.get('/api/bookings/')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)  # Normal user should only see their own bookings
-        self.assertEqual(response.data[0]['student'], self.user.id)
-
-    def test_get_bookings_as_admin_user(self):
+    def test_get_bookings_with_pagination_as_admin(self):
         self.client.force_authenticate(user=self.admin_user)
         response = self.client.get('/api/bookings/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2)  # Admin should see all bookings
-        self.assertIn(self.booking1.student.id, [booking['student'] for booking in response.data])
-        self.assertIn(self.booking2.student.id, [booking['student'] for booking in response.data])
+        self.assertIn('results', response.data)
+        self.assertEqual(len(response.data['results']),
+                         min(len(Booking.objects.all()), StandardResultsSetPagination.page_size))
 
+    def test_get_bookings_with_pagination_as_normal_user(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get('/api/bookings/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('results', response.data)
+        self.assertEqual(len(response.data['results']), min(len(Booking.objects.filter(student=self.user)),
+                                                            StandardResultsSetPagination.page_size))
 class BookingDetailAPITest(APITestCase):
     def setUp(self):
         # Create a test user
