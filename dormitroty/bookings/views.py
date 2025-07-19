@@ -121,5 +121,8 @@ class BookingDetailAPIView(APIView):
     )
     def delete(self, request, booking_id):
         booking = get_object_or_404(Booking, id=booking_id)
+        if booking.bed:
+            booking.bed.is_occupied = False
+            booking.bed.save()
         booking.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
