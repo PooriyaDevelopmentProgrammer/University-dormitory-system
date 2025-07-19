@@ -21,6 +21,7 @@ class Room(models.Model):
     capacity = models.PositiveIntegerField()
     floor = models.IntegerField()
     full = models.BooleanField(default=False)
+    price = models.PositiveIntegerField(default=0, help_text="قیمت ماهانه به تومان")
 
     def __str__(self):
         return f"Room {self.room_number} - {self.dorm.name}"
