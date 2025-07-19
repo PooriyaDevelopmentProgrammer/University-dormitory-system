@@ -1,82 +1,48 @@
 from django.test import TestCase
-from django.contrib.auth import get_user_model
-from dorms.models import Room, Dorm
+from jdatetime import date as jdate
+from jdatetime import datetime as jdatetime
 from bookings.models import Booking
-from datetime import date
-
-User = get_user_model()
+from dorms.models import Room, Dorm
+from users.models import User
 
 
 class BookingModelTest(TestCase):
     def setUp(self):
         # Create a test user
         self.user = User.objects.create_user(
-            email="testuser@example.com",
+            email='testuser@gmail.com',
             student_code="12345",
             national_code="987654321",
             phone_number="1234567890",
             password="password123"
         )
-        self.dorm = Dorm.objects.create(name='dorm A', location='this is just test', gender_restriction='male')
-        self.room = Room.objects.create(room_number="201", dorm=self.dorm, capacity=2, floor=2)
 
-    def test_create_booking(self):
-        # Create a booking
+        # Create a test dorm and room
+        self.dorm = Dorm.objects.create(name="Dorm A", location="Test Location")
+        self.room = Room.objects.create(dorm=self.dorm, room_number="101", capacity=4, floor=1)
+
+    def test_booking_jalali_dates(self):
+        # Create a booking with Jalali dates
+        start_date = jdate(1402, 11, 1)  # Equivalent to 2024-01-21 in Gregorian
+        end_date = jdate(1402, 11, 10)   # Equivalent to 2024-01-30 in Gregorian
         booking = Booking.objects.create(
             student=self.user,
             room=self.room,
-            status=Booking.BookingStatus.PENDING,
-            start_date=date(2023, 1, 1),
-            end_date=date(2023, 1, 10)
+            start_date=start_date,
+            end_date=end_date
         )
-        self.assertEqual(str(booking), f"Booking by {self.user.student_code} (pending)")
-        self.assertEqual(booking.status, Booking.BookingStatus.PENDING)
 
-    def test_booking_status_update(self):
-        # Create a booking
+        # Retrieve the booking and check the dates
+        self.assertEqual(booking.start_date, start_date)
+        self.assertEqual(booking.end_date, end_date)
+
+    def test_booking_created_at_jalali(self):
+        # Create a booking and check the created_at field
         booking = Booking.objects.create(
             student=self.user,
             room=self.room,
-            status=Booking.BookingStatus.PENDING,
-            start_date=date(2023, 1, 1),
-            end_date=date(2023, 1, 10)
+            start_date=jdate(1402, 11, 1),
+            end_date=jdate(1402, 11, 10)
         )
-        # Update the status
-        booking.status = Booking.BookingStatus.APPROVED
-        booking.save()
-        self.assertEqual(booking.status, Booking.BookingStatus.APPROVED)
-
-"""
-class BookingHistoryModelTest(TestCase):
-    def setUp(self):
-        # Create a test user
-        self.user = User.objects.create_user(
-            email="testuser@example.com",
-            student_code="12345",
-            national_code="987654321",
-            phone_number="1234567890",
-            password="password123"
-        )
-        self.dorm = Dorm.objects.create(name='dorm A', location='this is just test', gender_restriction='male')
-        self.room = Room.objects.create(room_number="201", dorm=self.dorm, capacity=2, floor=2)
-
-        # Create a booking
-        self.booking = Booking.objects.create(
-            student=self.user,
-            room=self.room,
-            status=Booking.BookingStatus.PENDING,
-            start_date=date(2023, 1, 1),
-            end_date=date(2023, 1, 10)
-        )
-
-    def test_create_booking_history(self):
-        # Create a booking history record
-        history = BookingHistory.objects.create(
-            booking=self.booking,
-            status=Booking.BookingStatus.APPROVED,
-            changed_by=self.user
-        )
-        self.assertEqual(str(history), f"{self.booking} changed to approved")
-        self.assertEqual(history.status, Booking.BookingStatus.APPROVED)
-        self.assertEqual(history.changed_by, self.user)
-"""
+        self.assertIsNotNone(booking.created_at)
+        self.assertIsInstance(booking.created_at, jdatetime)
