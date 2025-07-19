@@ -180,6 +180,28 @@ class RoomModelTest(APITestCase):
         bed_numbers = [bed.bed_number for bed in room.beds.all()]
         self.assertListEqual(bed_numbers, ["1", "2", "3"])
 
+    def test_create_room_with_price(self):
+        data = {
+            "dorm": self.dorm.id,
+            "capacity": 4,
+            "floor": 1,
+            "price": 600000
+        }
+        response = self.client.post('/api/dorms/rooms/', data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['price'], 600000)
+
+    def test_list_rooms_with_price(self):
+        Room.objects.create(
+            dorm=self.dorm,
+            room_number="101",
+            capacity=4,
+            floor=1,
+            price=700000
+        )
+        response = self.client.get('/api/dorms/rooms/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data[0]['price'], 700000)
 
 class BedModelTest(APITestCase):
     def setUp(self):
