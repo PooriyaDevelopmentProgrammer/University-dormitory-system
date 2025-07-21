@@ -2,10 +2,14 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth import get_user_model
 from bookings.models import Booking
-from dorms.models import Dorm, Room
 from payments.models import Transaction
+from django.urls import reverse
+from dorms.models import Dorm, Room, Bed
+from datetime import timedelta
+from django.utils import timezone
 
 User = get_user_model()
+
 
 class TransactionAPITestCase(APITestCase):
     def setUp(self):
@@ -50,6 +54,7 @@ class TransactionAPITestCase(APITestCase):
 
         # Authenticate the student
         self.client.force_authenticate(user=self.student)
+
     def test_create_transaction(self):
         # Test creating a transaction
         data = {"booking": self.booking.id}
@@ -133,3 +138,82 @@ class TransactionAPITestCase(APITestCase):
         self.client.force_authenticate(user=other_student)
         response = self.client.get(f'/api/payments/{transaction.id}/')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class DormitoryFinanceReportAPITest(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            email="admintest@gmail.com",
+            student_code='999999', national_code='9999999999',
+            phone_number='09120000000', gender='male',
+            is_staff=True, is_admin=True, is_superuser=True
+        )
+        self.student1 = User.objects.create_user(
+            email="student1test@gmail.com",
+            student_code='111111', national_code='1111111111',
+            phone_number='09111111111', gender='male',
+            first_name="علی", last_name="رضایی"
+
+        )
+        self.student2 = User.objects.create_user(
+            email="student2test@gmail.com",
+            student_code='222222', national_code='2222222222',
+            phone_number='09112222222', gender='female',
+            first_name="مریم", last_name="حسینی"
+        )
+
+        self.dorm = Dorm.objects.create(name="Alborz", location="Center", gender_restriction="male")
+        self.room = Room.objects.create(dorm=self.dorm, room_number="101", capacity=2, floor=1)
+        self.bed1 = Bed.objects.create(room=self.room, bed_number="1", is_occupied=True)
+        self.bed2 = Bed.objects.create(room=self.room, bed_number="2", is_occupied=False)
+
+        self.booking1 = Booking.objects.create(student=self.student1, room=self.room, start_date=timezone.now(),
+                                               end_date=timezone.now() + timedelta(days=30))
+        self.booking2 = Booking.objects.create(student=self.student2, room=self.room, start_date=timezone.now(),
+                                               end_date=timezone.now() + timedelta(days=30))
+
+        self.tx1 = Transaction.objects.create(booking=self.booking1, student=self.student1, amount=100000,
+                                              status='paid')
+        self.tx2 = Transaction.objects.create(booking=self.booking2, student=self.student2, amount=200000,
+                                              status='paid')
+
+    def test_only_admin_can_access_report(self):
+        # دانشجو نمی‌تونه دسترسی داشته باشه
+        self.client.force_authenticate(user=self.student1)
+        url = reverse('dormitory-full-report')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_can_see_report(self):
+        self.client.force_authenticate(user=self.admin)
+        url = reverse('dormitory-full-report')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        report = data[0]
+        self.assertEqual(report['dorm_name'], "Alborz")
+        self.assertEqual(report['total_income'], 300000)
+        self.assertEqual(report['total_transactions'], 2)
+        self.assertEqual(report['total_rooms'], 1)
+        self.assertEqual(report['total_capacity'], 2)
+        self.assertEqual(report['total_beds'], 2)
+        self.assertEqual(report['used_beds'], 1)
+        self.assertEqual(report['empty_beds'], 1)
+        self.assertIn("علی", " ".join(report['students']) or " ".join(report['students']))
+
+    def test_filter_by_date_range(self):
+        self.client.force_authenticate(user=self.admin)
+        # tx2 رو از 2 روز پیش کنیم تا فیلتر نشه
+        self.tx2.created_at = timezone.now() - timedelta(days=2)
+        self.tx2.save()
+
+        url = reverse('dormitory-full-report')
+        response = self.client.get(url, {'from_date': (timezone.now() - timedelta(days=1)).date().isoformat()})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        data = response.json()
+        report = data[0]
+        self.assertEqual(report['total_income'], 100000)  # فقط tx1 در بازه است
+        self.assertEqual(report['total_transactions'], 1)
