@@ -6,9 +6,12 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParamet
 from .models import Transaction
 from .serializers import TransactionSerializer
 from bookings.models import Booking
-from zeep import Client
+"""from zeep import Client
 from django.conf import settings
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404"""
+from rest_framework.permissions import IsAdminUser
+from dorms.models import Dorm, Bed
+from django.db.models import Sum, Count, Q
 
 
 @extend_schema(
@@ -122,6 +125,7 @@ class TransactionDeleteAPIView(generics.DestroyAPIView):
         return transaction
 
 
+"""
 @extend_schema(
     summary="ساخت لینک پرداخت زرین‌پال",
     description="این API یک تراکنش را به درگاه زرین‌پال می‌فرستد و لینک پرداخت ایجاد می‌کند.",
@@ -201,5 +205,66 @@ class ZarinpalVerifyAPIView(APIView):
         else:
             return Response({'detail': 'پرداخت تأیید نشد.', 'status_code': result.Status},
                             status=status.HTTP_400_BAD_REQUEST)
+"""
 
 
+@extend_schema(
+    summary="گزارش کامل مالی و ظرفیت خوابگاه‌ها برای مدیر",
+    description="این API به مدیر اطلاعات مالی و ظرفیت تخت‌های هر خوابگاه را نمایش می‌دهد.",
+    parameters=[
+        OpenApiParameter(name='from_date', required=False, type=str, description='تاریخ شروع YYYY-MM-DD'),
+        OpenApiParameter(name='to_date', required=False, type=str, description='تاریخ پایان YYYY-MM-DD'),
+    ],
+    responses={
+        200: OpenApiResponse(description="گزارش کامل هر خوابگاه")
+    }
+)
+class DormitoryFullFinanceReportAPIView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        from_date = request.query_params.get('from_date')
+        to_date = request.query_params.get('to_date')
+
+        dorms = Dorm.objects.all()
+        result = []
+
+        for dorm in dorms:
+            transactions = Transaction.objects.filter(
+                status='paid',
+                booking__room__dorm=dorm
+            )
+
+            if from_date:
+                transactions = transactions.filter(created_at__gte=from_date)
+            if to_date:
+                transactions = transactions.filter(created_at__lte=to_date)
+
+            total_income = transactions.aggregate(total=Sum('amount'))['total'] or 0
+            total_transactions = transactions.count()
+
+            student_names = list(
+                transactions.values_list('student__first_name', 'student__last_name')
+                .distinct()
+            )
+            students = [f"{f} {l}" for f, l in student_names]
+
+            total_rooms = dorm.rooms.count()
+            total_capacity = dorm.rooms.aggregate(capacity=Sum('capacity'))['capacity'] or 0
+            total_beds = Bed.objects.filter(room__dorm=dorm).count()
+            used_beds = Bed.objects.filter(room__dorm=dorm, is_occupied=True).count()
+            empty_beds = total_beds - used_beds
+
+            result.append({
+                'dorm_name': dorm.name,
+                'total_income': total_income,
+                'total_transactions': total_transactions,
+                'students': students,
+                'total_rooms': total_rooms,
+                'total_capacity': total_capacity,
+                'total_beds': total_beds,
+                'used_beds': used_beds,
+                'empty_beds': empty_beds,
+            })
+
+        return Response(result, status=status.HTTP_200_OK)
