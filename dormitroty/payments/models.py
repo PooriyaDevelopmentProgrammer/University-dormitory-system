@@ -62,5 +62,3 @@ class Transaction(models.Model):
             self.save()
             self.booking.status = self.booking.BookingStatus.APPROVED
             self.booking.save()
-            self.booking.bed.is_occupied = True
-            self.booking.bed.save()
