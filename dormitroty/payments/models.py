@@ -1,7 +1,7 @@
 from django.db import models
 from django.conf import settings
 from bookings.models import Booking
-
+from django.db import transaction
 
 class Transaction(models.Model):
     class Status(models.TextChoices):
@@ -56,10 +56,11 @@ class Transaction(models.Model):
         return f"{self.student.student_code} - {self.amount} تومان - {self.status}"
 
     def mark_as_paid(self, ref_id):
-        self.status = self.Status.PAID
-        self.ref_id = ref_id
-        self.save()
-        """
-        self.booking.status = self.booking.BookingStatus.APPROVED
-        self.booking.save()
-        """
+        with transaction.atomic():
+            self.status = self.Status.PAID
+            self.ref_id = ref_id
+            self.save()
+            self.booking.status = self.booking.BookingStatus.APPROVED
+            self.booking.save()
+            self.booking.bed.is_occupied = True
+            self.booking.bed.save()
