@@ -3,13 +3,11 @@ from django.contrib.auth.models import Permission
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, student_code, national_code, phone_number, password=None, groups=None,
+    def create_user(self, student_code, national_code, phone_number, email=None, password=None, groups=None,
                     permissions=None, **extra_fields):
         """
         Create and return a regular user with the given required fields and password.
         """
-        if not email:
-            raise ValueError("The Email field must be set")
         if not student_code:
             raise ValueError("The Student Code field must be set")
         if not national_code:
@@ -37,7 +35,8 @@ class UserManager(BaseUserManager):
 
         return user
 
-    def create_superuser(self, email, student_code, national_code, phone_number, password=None, groups=None,
+    def create_superuser(self, student_code, national_code, phone_number, email=None, password=None,
+                         groups=None,
                          permissions=None, **extra_fields):
         """
         Create and return a superuser with the given required fields and password.
@@ -54,5 +53,5 @@ class UserManager(BaseUserManager):
         if not extra_fields.get('is_superuser'):
             raise ValueError("Superuser must have is_superuser=True.")
 
-        return self.create_user(email, student_code, national_code, phone_number, password, groups, permissions,
+        return self.create_user(student_code, national_code, phone_number, email, password, groups, permissions,
                                 **extra_fields)

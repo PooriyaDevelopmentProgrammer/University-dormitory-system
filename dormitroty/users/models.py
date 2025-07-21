@@ -10,7 +10,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         MALE = 'male', 'Male'
         FEMALE = 'female', 'Female'
 
-    email = models.EmailField(unique=True, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
     first_name = models.CharField(max_length=30, blank=True)
     last_name = models.CharField(max_length=30, blank=True)
     student_code = models.CharField(max_length=20, unique=True)
