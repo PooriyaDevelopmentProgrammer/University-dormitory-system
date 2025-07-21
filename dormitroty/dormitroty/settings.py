@@ -158,3 +158,8 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.User'
+
+
+# zarinpal config
+ZARINPAL_MERCHANT_ID = os.environ.get("ZARINPAL_MERCHANT_ID")
+ZARINPAL_CALLBACK_URL = os.environ.get("ZARINPAL_CALLBACK_URL")
