@@ -17,6 +17,7 @@ class BookingCreateSerializer(serializers.ModelSerializer):
     def validate(self, data):
         dorm_id = data.get('dorm_id')
         room_id = data.get('room_id')
+        user = self.context['request'].user
 
         try:
             room = Room.objects.get(id=room_id, dorm_id=dorm_id)
@@ -26,6 +27,10 @@ class BookingCreateSerializer(serializers.ModelSerializer):
         # در صورت نیاز: بررسی اینکه اتاق پر نباشه
         if room.full:
             raise serializers.ValidationError("ظرفیت این اتاق تکمیل شده است.")
+
+        dorm_gender = room.dorm.gender_restriction
+        if dorm_gender != user.gender:
+            raise serializers.ValidationError("جنسیت شما با محدودیت خوابگاه مطابقت ندارد.")
 
         data['room'] = room
         return data
