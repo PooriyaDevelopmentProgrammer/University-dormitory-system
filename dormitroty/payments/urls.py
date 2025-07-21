@@ -4,8 +4,9 @@ from .views import (
     TransactionListAPIView,
     TransactionRetrieveAPIView,
     TransactionDeleteAPIView,
-    StartZarinpalPaymentAPIView,
-    ZarinpalVerifyAPIView
+    # StartZarinpalPaymentAPIView,
+    # ZarinpalVerifyAPIView
+    DormitoryFullFinanceReportAPIView
 )
 
 urlpatterns = [
@@ -14,7 +15,11 @@ urlpatterns = [
     path('<str:pk>/', TransactionRetrieveAPIView.as_view(), name='detail-transaction'),
     path('<str:pk>/delete/', TransactionDeleteAPIView.as_view(), name='delete-transaction'),
 ]
-urlpatterns += [
+"""urlpatterns += [
     path('<int:transaction_id>/pay/', StartZarinpalPaymentAPIView.as_view(), name='start-payment'),
     path('verify/', ZarinpalVerifyAPIView.as_view(), name='verify-payment'),
+]"""
+
+urlpatterns += [
+    path('admin/full-report/', DormitoryFullFinanceReportAPIView.as_view(), name='dormitory-full-report'),
 ]
