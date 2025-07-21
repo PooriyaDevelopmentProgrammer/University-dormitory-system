@@ -1,7 +1,9 @@
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth import get_user_model
-
+from django.urls import reverse
+from django.utils import timezone
+from datetime import timedelta
 from bookings.pagination import StandardResultsSetPagination
 from dorms.models import Dorm, Room, Bed
 from bookings.models import Booking
@@ -214,3 +216,30 @@ class BookingDetailAPITest(APITestCase):
         # Assert the bed is no longer occupied
         self.bed.refresh_from_db()
         self.assertFalse(self.bed.is_occupied)
+
+
+class BookingGenderRestrictionTest(APITestCase):
+    def setUp(self):
+        self.male_user = User.objects.create_user(
+            student_code='1001', national_code='1234567890',
+            phone_number='09120000000', gender='male'
+        )
+        self.female_user = User.objects.create_user(
+            student_code='1002', national_code='1234567891',
+            phone_number='09120000001', gender='female'
+        )
+
+        self.male_dorm = Dorm.objects.create(name="Alborz", location="North", gender_restriction="male")
+        self.room = Room.objects.create(dorm=self.male_dorm, room_number='101', capacity=1, floor=1)
+        self.bed = Bed.objects.create(room=self.room, bed_number='1', is_occupied=False)
+
+    def test_female_cannot_book_male_dorm(self):
+        self.client.force_authenticate(user=self.female_user)
+        url = reverse('booking-list-create')
+        data = {
+            'dorm_id': self.male_dorm.id,
+            'room_id': self.room.id,
+        }
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("جنسیت شما با محدودیت خوابگاه مطابقت ندارد.", response.json().get('non_field_errors', [''])[0])
